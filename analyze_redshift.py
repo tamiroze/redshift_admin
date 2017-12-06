@@ -9,7 +9,7 @@ import etl_cfg
 
 logger = logging.getLogger(__name__)
 logging.config.dictConfig(etl_cfg.LOGGING_CONFIG)
-rs_conn = pg.connect(etl_cfg.REDSHIFT_DB_URL)
+rs_conn = pg.connect('REDSHIFT_DB_URL')
 
 
 def get_table_list():
