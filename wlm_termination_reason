@@ -1,0 +1,34 @@
+select convert_timezone('US/Pacific',q.starttime) starttime_pt,
+       convert_timezone('US/Pacific',q.endtime) endtime_pt,
+       u.usename, qms.*,
+       datediff('seconds',starttime, endtime) query_duration_sec,
+       q.aborted,
+       ra.rule,
+       ra.action,
+       cursor_query,
+       q.querytxt,
+       md5(q.querytxt) as qmd5 
+from svl_query_metrics_summary qms
+inner join stl_query q
+ on qms.query=q.query
+inner join  pg_user u
+ on qms.userid = u.usesysid
+left outer join stl_wlm_rule_action ra
+ on qms.query = ra.query
+left outer join
+ (select query, listagg(text) within group (order by sequence) cursor_query
+  from (
+    select query, st.text, sequence, row_number() over (partition by q.xid, q.pid order by sequence) rn
+    from SVL_STATEMENTTEXT st,
+             STL_QUERY q
+    where q.xid = st.xid
+      and q.pid = st.pid
+      and lower(st.text||' '||q.querytxt) not  like '%svp%'
+      and convert_timezone('US/Pacific',q.starttime) >= '2018-01-01 00:00:00' ---and convert_timezone(‘US/Pacific’,q.starttime) < ‘2017-02-01 06:00:00’
+      and q.userid = 146
+      ---and q.aborted =1
+      ) where rn < 50
+    group by 1 )  tbq
+  on qms.query = tbq.query
+where convert_timezone('US/Pacific',q.starttime) >= '2018-01-01 00:00:00' ---and convert_timezone(‘US/Pacific’,q.starttime) < ‘2017-07-03 10:50:00’
+  and q.querytxt like '%with stv as%'
